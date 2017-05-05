@@ -4,6 +4,7 @@ class powerdns::backend (
   $ensure             = $powerdns::params::default_backend_ensure,
   $config_file_backup = $powerdns::params::backend_config_file_backup,
   $config             = {},
+  $backend_file_perms = $powerdns::params::backend_file_perms
 ) inherits powerdns {
 
   # check if backend backend_name is valid
@@ -39,7 +40,7 @@ class powerdns::backend (
     ensure  => 'file',
     path    => $config_file,
     content => template("${module_name}/config/KEY-VALUE-conf-file.erb"),
-    mode    => $powerdns::backend_file_perms,
+    mode    => $backend_file_perms,
     owner   => $powerdns::user,
     group   => $powerdns::group,
     notify  => Service[$powerdns::params::service_name],
