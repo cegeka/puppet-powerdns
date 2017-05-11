@@ -215,7 +215,7 @@ You can also support my work on powerdns via
 
 ## Authors
 
-* [Christian González](https://github.com/christiangda)
+* [Christian Gonzalez](https://github.com/christiangda)
 
 ## License
 

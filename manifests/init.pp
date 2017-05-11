@@ -2,11 +2,11 @@
 #
 # === Authors
 #
-# Christian González <christiangda@gmail.com>
+# Christian Gonzalez <christiangda@gmail.com>
 #
 # === Copyright
 #
-# Copyright 2016 Christian González.
+# Copyright 2016 Christian Gonzalez.
 #
 class powerdns (
   $user               = $powerdns::params::user,
