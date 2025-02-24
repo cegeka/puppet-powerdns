@@ -1,72 +1,87 @@
-# == Class: powerdns
+# powerdns
 #
-# === Authors
-#
-# Christian Gonzalez <christiangda@gmail.com>
-#
-# === Copyright
-#
-# Copyright 2016 Christian Gonzalez.
+# @param autoprimaries
+#   Hash of autoprimaries the ensurce (with resource powerdns_autoprimary)
+# @param purge_autoprimaries
+#   Set this to true if you like to purge all autoprimaries not managed with puppet
 #
 class powerdns (
-  $user               = $powerdns::params::user,
-  $group              = $powerdns::params::group,
-  $service_ensure     = $powerdns::params::service_ensure,
-  $package_ensure     = $powerdns::params::package_ensure,
-  $service_enable     = $powerdns::params::service_enable,
-  $service_manage     = $powerdns::params::service_manage,
-  $service_restart    = $powerdns::params::service_restart,
-  $service_status     = $powerdns::params::service_status,
-  $service_status_cmd = $powerdns::params::service_status_cmd,
-  $config_file_path   = $powerdns::params::config_file_path,
-  $config_file        = $powerdns::params::config_file,
-  $config_file_backup = $powerdns::params::config_file_backup,
-  $config             = {},
-  ) inherits powerdns::params {
-
-  # Fail fast if we're not using a new Puppet version.
-  # if versioncmp($::puppetversion, '3.7.0') < 0 {
-  #   fail('This module requires the use of Puppet v3.7.0 or newer.')
-  # }
-
-  if ! ($package_ensure in [ 'present', 'installed', 'absent', 'purged', 'held', 'latest' ]) {
-    fail("\"${::status}\" is not a valid status parameter value")
+  Boolean                    $authoritative                      = true,
+  Boolean                    $recursor                           = false,
+  Enum['ldap', 'mysql', 'bind', 'postgresql', 'sqlite'] $backend = 'mysql',
+  Boolean                    $backend_install                    = true,
+  Boolean                    $backend_create_tables              = true,
+  Powerdns::Secret           $db_root_password                   = undef,
+  String[1]                  $db_username                        = 'powerdns',
+  Powerdns::Secret           $db_password                        = undef,
+  String[1]                  $db_name                            = 'powerdns',
+  String[1]                  $db_host                            = 'localhost',
+  Integer[1]                 $db_port                            = 3306,
+  String[1]                  $db_dir                             = $powerdns::params::db_dir,
+  String[1]                  $db_file                            = $powerdns::params::db_file,
+  Boolean                    $require_db_password                = true,
+  String[1]                  $ldap_host                          = 'ldap://localhost/',
+  Optional[String[1]]        $ldap_basedn                        = undef,
+  String[1]                  $ldap_method                        = 'strict',
+  Optional[String[1]]        $ldap_binddn                        = undef,
+  Powerdns::Secret           $ldap_secret                        = undef,
+  Boolean                    $custom_repo                        = false,
+  Boolean                    $custom_epel                        = false,
+  Pattern[/4\.[0-9]+/]       $authoritative_version              = $powerdns::params::authoritative_version,
+  Pattern[/[4,5]\.[0-9]+/]   $recursor_version                   = $powerdns::params::recursor_version,
+  String[1]                  $mysql_schema_file                  = $powerdns::params::mysql_schema_file,
+  String[1]                  $pgsql_schema_file                  = $powerdns::params::pgsql_schema_file,
+  Hash                       $forward_zones                      = {},
+  Powerdns::Autoprimaries    $autoprimaries                      = {},
+  Boolean                    $purge_autoprimaries                = false,
+) inherits powerdns::params {
+  # Do some additional checks. In certain cases, some parameters are no longer optional.
+  if $authoritative {
+    if ($powerdns::backend != 'bind') and ($powerdns::backend != 'ldap') and ($powerdns::backend != 'sqlite') and $require_db_password {
+      assert_type(Variant[String[1], Sensitive[String[1]]], $db_password) |$expected, $actual| {
+        fail("'db_password' must be a non-empty string when 'authoritative' == true")
+      }
+      if $backend_install {
+        assert_type(Variant[String[1], Sensitive[String[1]]], $db_root_password) |$expected, $actual| {
+          fail("'db_root_password' must be a non-empty string when 'backend_install' == true")
+        }
+      }
+    }
+    if $backend_create_tables and $backend == 'mysql' {
+      assert_type(Variant[String[1], Sensitive[String[1]]], $db_root_password) |$expected, $actual| {
+        fail("On MySQL 'db_root_password' must be a non-empty string when 'backend_create_tables' == true")
+      }
+    }
   }
 
-  if ! ($service_ensure in [ 'running', 'stopped' ]) {
-    fail("\"${::status}\" is not a valid status parameter value")
+  # Include the required classes
+  unless $custom_repo {
+    contain powerdns::repo
   }
 
-  validate_bool($service_enable)
-  validate_bool($service_manage)
-  validate_string($config_file_path)
-  validate_string($config_file)
-  validate_bool($config_file_backup)
-  validate_hash($config)
+  if $authoritative {
+    contain powerdns::authoritative
 
-  validate_array($powerdns::params::package_name)
-
-  validate_string($powerdns::params::service_name)
-  validate_bool($service_restart)
-  validate_bool($service_status)
-
-  # Variable used to merge configd
-  $config_options = deep_merge($powerdns::params::default_config, $config)
-  validate_hash($config_options)
-
-  powerdns::install { $powerdns::params::package_name: } ->
-  powerdns::config { $config_file:
-    config       => $config_options,
-    file_path    => $config_file_path,
-    include_dir  => $powerdns::params::config_include_dir,
-    service_name => $powerdns::params::service_name,
-    user         => $user,
-    group        => $group,
-  } ->
-
-  powerdns::service { $powerdns::params::service_name:
-    service_restart    => $service_restart,
-    service_status     => $service_status,
-    service_status_cmd => $service_status_cmd,
+    # Set up Hiera. Even though it's not necessary to explicitly set $type for the authoritative
+    # config, it is added for clarity.
+    $powerdns_auth_config = lookup('powerdns::auth::config', Hash, 'deep', {})
+    $powerdns_auth_defaults = { 'type' => 'authoritative' }
+    create_resources(powerdns::config, $powerdns_auth_config, $powerdns_auth_defaults)
   }
+
+  if $recursor {
+    contain powerdns::recursor
+
+    # Set up Hiera for the recursor.
+    $powerdns_recursor_config = lookup('powerdns::recursor::config', Hash, 'deep', {})
+    $powerdns_recursor_defaults = { 'type' => 'recursor' }
+    create_resources(powerdns::config, $powerdns_recursor_config, $powerdns_recursor_defaults)
+  }
+
+  if $purge_autoprimaries {
+    resources { 'powerdns_autoprimary':
+      purge => true,
+    }
+  }
+  create_resources('powerdns_autoprimary', $autoprimaries)
 }

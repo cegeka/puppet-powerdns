@@ -1,225 +1,445 @@
-# [Puppet](https://puppetlabs.com/) powerdns module
+# PowerDNS
 
-[![Build Status](https://travis-ci.org/christiangda/puppet-powerdns.svg?branch=master)](https://travis-ci.org/christiangda/puppet-powerdns)
-[![Code Climate](https://codeclimate.com/github/christiangda/puppet-powerdns/badges/gpa.svg)](https://codeclimate.com/github/christiangda/puppet-powerdns)
-[![Test Coverage](https://codeclimate.com/github/christiangda/puppet-powerdns/badges/coverage.svg)](https://codeclimate.com/github/christiangda/puppet-powerdns/coverage)
-[![Issue Count](https://codeclimate.com/github/christiangda/puppet-powerdns/badges/issue_count.svg)](https://codeclimate.com/github/christiangda/puppet-powerdns)
-[![Puppet Forge](http://img.shields.io/puppetforge/v/christiangda/powerdns.svg)](https://forge.puppetlabs.com/christiangda/powerdns)
-[![Puppet Forge Downloads](http://img.shields.io/puppetforge/dt/christiangda/powerdns.svg)](https://forge.puppetlabs.com/christiangda/powerdns/scores)
+[![Build Status](https://github.com/sensson/puppet-powerdns/workflows/CI/badge.svg)](https://github.com/sensson/puppet-powerdns/actions) [![Puppet Forge](https://img.shields.io/puppetforge/v/sensson/powerdns.svg?maxAge=2592000?style=plastic)](https://forge.puppet.com/sensson/powerdns)
 
-#### Table of Contents
+This module can be used to configure both the recursor and authoritative
+PowerDNS 4 server. It officially supports Puppet 7 and higher.
 
-1. [Overview](#overview)
-2. [Module Description - What the module does and why it is useful](#module-description)
-3. [Setup - The basics of getting started with powerdns](#setup)
-    * [What powerdns affects](#what-powerdns-affects)
-    * [Setup requirements](#setup-requirements)
-    * [Beginning with powerdns](#beginning-with-powerdns)
-4. [Usage - Configuration options and additional functionality](#usage)
-5. [Reference - An under-the-hood peek at what the module is doing and how](#reference)
-5. [Limitations - OS compatibility, etc.](#limitations)
-6. [Development - Guide for contributing to the module](#development)
-7. [Authors - Who is contributing to do it](#authors)
-8. [License](#license)
+## Examples
 
-## Overview
+### Installation and configuration
 
-This is a [Puppet](https://puppetlabs.com/) module to manage [PowerDNS](https://www.powerdns.com/) tool.  With this module you can installs, configures, and manages the [PowerDNS](https://www.powerdns.com/) services.
+This will install the authoritative PowerDNS server which includes the
+MySQL server and the management of the database and its tables. This is
+the bare minimum.
 
-This module were designed to work with [Puppet](https://puppetlabs.com/) version >= 3.8.0
-
-## Module Description
-
-[PowerDNS](https://www.powerdns.com/) consists of two parts: the Authoritative Server and the Recursor, and you can use this module to configure both.
-For both [PowerDNS](https://www.powerdns.com/) operation modes, you could install, configure and manage the services,  is very easy used this to configure your [PowerDNS](https://www.powerdns.com/), in fact, you have predefined configuration values to put and run.
-
-## Setup
-
-### What ::powerdns affects
-
-* Debian Family:
-    1. Packages [
-      'pdns-backend-geo',
-      'pdns-backend-ldap',
-      'pdns-backend-lua',
-      'pdns-backend-mysql',
-      'pdns-backend-pgsql',
-      'pdns-backend-pipe',
-      'pdns-backend-sqlite3'
-    ]
-    2. Files [
-      '/etc/powerdns/bindbackend.conf',
-      '/etc/powerdns/pdns.d/pdns.simplebind.conf',
-      '/etc/powerdns/pdns.d/pdns.local.conf',
-    ]
-    3. Services [
-      'pdns'
-    ]
-* RedHat Family
-    1. Packages [
-      'pdns-backend-geo',
-      'pdns-backend-lua',
-      'pdns-backend-ldap',
-      'pdns-backend-lmdb',
-      'pdns-backend-pipe',
-      'pdns-backend-geoip',
-      'pdns-backend-mydns',
-      'pdns-backend-mysql',
-      'pdns-backend-remote',
-      'pdns-backend-sqlite',
-      'pdns-backend-opendbx',
-      'pdns-backend-tinydns',
-      'pdns-backend-postgresql'
-    ]
-    2. Files [
-      '/etc/pdns/bindbackend.conf',
-      '/etc/pdns/pdns.d/pdns.simplebind.conf',
-      '/etc/pdns/pdns.d/pdns.local.conf'
-    ]
-    3. Services [
-      'pdns-recursor'
-    ]
-
-* Is very important to know about [PowerDNS](https://www.powerdns.com/) to use this [Puppet](https://puppetlabs.com/) module.
-
-### Beginning with ::powerdns
-
-You can use
 ```puppet
-node 'dns.mynetwork.local' {
-  include ::powerdns
-  include ::powerdns::backend
-}
-```
-or
-```puppet
-node 'dns.mynetwork.local' {
-  class { '::powerdns': }
-  class { '::powerdns::backend': }
-}
-```
-to install and configure [PowerDNS](https://www.powerdns.com/) with Default module parameters.
-
-additional you could use
-```puppet
-node 'dns.mynetwork.local' {
-  include ::powerdns::recursor
-}
-```
-or
-```puppet
-node 'dns.mynetwork.local' {
-  class { '::powerdns::recursor': }
-}
-```
-if you want to configure [PowerDNS](https://www.powerdns.com/) Recursor service.
-
-## Usage
-
-For more specific configuration of powerdns class you can use:
-```puppet
-node 'dns.mynetwork.local' {
-  class { '::powerdns':
-    package_ensure     => 'present',
-    service_enable     => true,
-    service_ensure     => 'running',
-    service_status     => true,
-    service_status_cmd => '/usr/bin/pdns_control ping 2>/dev/null 1>/dev/null',
-    config => {
-      'allow-from'      => '192.168.1.0/24',
-      'local-port'      => 53,
-      'query-cache-ttl' => 20,
-    }
-  }
-}
-```
-To configure PostgreSQL as backend, you can do:
-**NOTE**: See valid backend name in param file before to set variable `backend_name` this depend of the Operating System type
-```puppet
-node 'dns.mynetwork.local' {
-  class { '::powerdns::backend':
-    backend_name => 'pgsql',
-    ensure       => 'present',
-    config       => {
-      'launch'          => 'gpgsql',
-      'gpgsql-host'     => 'localhost',
-      'gpgsql-port'     => '3306',
-      'gpgsql-dbname'   => 'mypdnsdb',
-      'gpgsql-user'     => 'mypdnsuser',
-      'gpgsql-password' => 'mypassword',
-    }
-  }
+class { 'powerdns':
+  db_password      => 's0m4r4nd0mp4ssw0rd',
+  db_root_password => 'v3rys3c4r3',
 }
 ```
 
-For more specific configuration of PowerDNS Recursor class you can use:
+If you want to install both the recursor and the authoritative service on the
+same server it is recommended to have the services listen on their own IP
+address. The example below needs to be adjusted to use the ip addresses of your
+server.
+
+This may fail the first time on Debian-based distro's.
+
 ```puppet
-node 'dns.mynetwork.local' {
-  class { '::powerdns::recursor':
-    package_ensure     => 'present',
-    service_enable     => true,
-    service_ensure     => 'running',
-    service_status     => true,
-    service_status_cmd => '/usr/bin/rec_control ping 2>/dev/null 1>/dev/null',
-    config => {
-      'allow-from'                 => '192.168.1.0/24',
-      'local-port'                 => 53,
-      'etc-hosts-file'             => '/etc/hosts',
-    }
-  }
+powerdns::config { 'authoritative-local-address':
+  type    => 'authoritative',
+  setting => 'local-address',
+  value   => '127.0.0.1',
+}
+powerdns::config { 'recursor-local-address':
+  type    => 'recursor',
+  setting => 'local-address',
+  value   => '127.0.0.2',
+}
+class { 'powerdns':
+  db_password      => 's0m4r4nd0mp4ssw0rd',
+  db_root_password => 'v3rys3c4r3',
+  recursor         => true,
 }
 ```
+
+### Recursor forward zones
+
+Multiple forward zones can be configured using `powerdns::forward_zones`.
+
+```puppet
+include powerdns::recursor
+```
+
+The configuration will be serialized into `forward-zones-file` config file.
+
+```yaml
+powerdns::forward_zones:
+  'example.com': 10.0.0.1
+  'foo': 192.168.1.1
+   # recurse queries
+  '+.': 1.1.1.1;8.8.8.8;8.8.4.4
+```
+
+### Backends
+
+The default backend is MySQL. It also comes with support for PostgreSQL, Bind,
+LDAP and SQLite.
+
+If you don't specify the backend it assumes you will use MySQL.
+
+```puppet
+class { 'powerdns':
+  backend     => 'mysql',
+  db_password => 's0m4r4nd0mp4ssw0rd',
+}
+```
+
+To use PostgreSQL set `backend` to `postgresql`.
+
+```puppet
+class { 'powerdns':
+  backend     => 'postgresql',
+  db_password => 's0m4r4nd0mp4ssw0rd',
+}
+```
+
+To use Bind you must set `backend_install` and `backend_create_tables` to
+false. For example:
+
+```puppet
+class { 'powerdns':
+  backend               => 'bind',
+  backend_install       => false,
+  backend_create_tables => false,
+}
+```
+
+To use LDAP you must set `backend_install` and `backend_create_tables` to
+false. For example:
+
+```puppet
+class { 'powerdns':
+  backend               => 'ldap',
+  backend_install       => false,
+  backend_create_tables => false,
+}
+```
+
+To use SQLite you must set `backend` to `sqlite`. Ensure that the `pdns` user
+has write permissions to directory holding database file. For example:
+
+```puppet
+class { 'powerdns':
+  backend => 'sqlite',
+  db_file => '/opt/powerdns.sqlite3',
+}
+```
+
+### Manage zones with this module
+With this module you can manage zones if you use a backend that is capable of doing so (eg. sqllite, postgres or mysql).
+
+You can add a zone 'example.org' by using:
+``` puppet
+ powerdns_zone{'example.org': }
+```
+This will add the zone which is then managed through puppet any records not added
+through puppet will be deleted additionaly a SOA record is generated. To just ensure the
+zone is available, but not manage any records use (and do not add any powerdns\_record
+resources with target this domain):
+``` puppet
+ powerdns_zone{'example.org':
+   manage_records => false,
+ }
+```
+
+To addjust the SOA record (if add\_soa is set to true), use the soa\_\* parameters documented in the powerdns\_record resource.
+
+The zone records can be managed through the powerdns\_record resource. As an example we add a NS an A and an AAAA record:
+``` puppet
+ powerdns_record{'nameserver1':
+   target_zone => 'example.org',
+   rname       => '.',  # a dot takes the target_zone only as rname
+   rtype       => 'NS',
+   rttl        => '4242',
+   rcontent    => 'ns1.example.org.' # pay attention to the dot at the end !
+ }
+ powerdns_record{'ns1.example.org':
+   rcontent => '127.0.0.1',
+ }
+ powerdns_record{'ipv6-ns1.example.org':
+   target_zone => 'example.org',
+   rname       => 'ns1',  # for the full record, the target_zone will be amended
+   rtype       => 'AAAA',
+   rcontent    => '::1',
+ }
+ powerdns_record{'www-server':
+   target_zone => 'example.org',
+   rname       => 'www',
+   rcontent    => '127.0.0.1'
+ }
+```
+Remark: if the target\_zone is not managed with powerdns\_zone resource, powerdns\_record does not change anything!
+
+### Sensitive secrets
+
+Passwords can be passed either as plain-text strings or as [Puppet's Sensitive type](https://www.puppet.com/docs/puppet/7/lang_data_sensitive.html) when appropriate encrypted backend is configured on Puppet server.
+
+### Manage autoprimaries (automatic provisioning of secondaries)
+It's possible to manage the the 'autoprimaries' with puppet (For a decription of the autoprimary functionality in
+powerdns see [powerdns manual](https://doc.powerdns.com/authoritative/modes-of-operation.html#autoprimary-automatic-provisioning-of-secondaries).
+The autoprimaries are set with the powerdns\_autoprimary resource. As an example we add the primary 1.2.3.4 named ns1.example.org whith the account 'test'
+``` yaml
+powerdns_autoprimary{'1.2.3.4@ns1.example.org':
+  ensure  => 'present',
+  account => 'test',
+}
+```
+As an alternative, you can set the autoprimaries parameter of the powerdns class to achive the same (eg. if you use hiera).
+
+For removal of an autoprimary set ensure to 'absent' or set the parameter purge\_autoprimaries of the powerdns class to true which willa
+remove all autoprimaries that are not present in the puppet manifest.
 
 ## Reference
 
-* [Puppet](https://puppetlabs.com/)
-* [PowerDNS](https://www.powerdns.com/)
-  * [Authoritative Settings](https://doc.powerdns.com/md/authoritative/settings/)
-  * [Recursor Settings](https://doc.powerdns.com/md/recursor/settings/)
-* [Rubocop](https://github.com/bbatsov/rubocop)
-* [rspec-puppet](http://rspec-puppet.com/)
-* [puppet-blacksmith](https://github.com/voxpupuli/puppet-blacksmith)
-* [RSpec For Ops Part 2: Diving in with rspec-puppet](http://blog.danzil.io/page2/)
+### Parameters
 
+#### powerdns
+
+We provide a number of configuration options to change particular settings
+or to override our defaults when required.
+
+##### `authoritative`
+
+Install the PowerDNS authoritative server. Defaults to true.
+
+##### `recursor`
+
+Install the PowerDNS recursor. Defaults to false.
+
+##### `backend`
+
+Choose a backend for the authoritative server. Valid values are 'mysql',
+'postgresql' and 'bind'. Defaults to 'mysql'.
+
+##### `backend_install`
+
+If you set this to true it will try to install a database backend for
+you. This requires `db_root_password`. Defaults to true.
+
+##### `backend_create_tables`
+
+If set to true, it will ensure the required powerdns tables exist in your
+backend database. If your database is on a separate host or you are using the
+the Bind backend, set `backend_install` and `backend_create_tables` to false.
+Defaults to true.
+
+##### `db_root_password`
+
+If you set `backend_install` to true you are asked to specify a root
+password for your database. Accepts either `String` or `Sensitive` type.
+
+##### `db_username`
+
+Set the database username. Defaults to 'powerdns'.
+
+##### `db_password`
+
+Set the database password. Accepts either `String` or `Sensitive` type. Default is empty.
+
+##### `db_name`
+
+The database you want to use for PowerDNS. Defaults to 'powerdns'.
+
+##### `db_host`
+
+The host where your database should be created. Defaults to 'localhost'.
+
+##### `db_port`
+
+The port to use when connecting to your database. Defaults to '3306'. Only
+supported in the MySQL backend currently.
+
+##### `db_file`
+
+The file where database will be stored when using SQLite backend. Defaults to '/var/lib/powerdns/powerdns.sqlite3'
+
+##### `ldap_host`
+
+The host where your LDAP server can be found. Defaults to 'ldap://localhost/'.
+
+##### `ldap_basedn`
+
+The path to search for in LDAP. Defaults to undef.
+
+##### `ldap_method`
+
+Defines how LDAP is queried. Defaults to 'strict'.
+
+##### `ldap_binddn`
+
+Path to the object to authenticate against. Defaults to undef.
+
+##### `ldap_secret`
+
+Password for simple authentication against ldap_basedn. Accepts either `String` or `Sensitive` type. Defaults to undef.
+
+##### `custom_repo`
+
+Don't manage the PowerDNS repo with this module. Defaults to false.
+
+##### `custom_epel`
+
+Don't manage the EPEL repo with this module. Defaults to false.
+
+##### `version`
+
+Set the PowerDNS version. Defaults to '4.1'.
+
+##### `mysql_schema_file`
+
+Set the PowerDNS MySQL schema file. Defaults to the location provided by
+PowerDNS.
+
+##### `pgsql_schema_file`
+
+Set the PowerDNS PostgreSQL schema file. Defaults to the location provided by
+PowerDNS.
+
+#### powerdns::authoritative and powerdns::recursor
+
+##### `package_ensure`
+
+You can set the package version to be installed. Defaults to 'installed'.
+
+### Defines
+
+#### powerdns::config
+
+All PowerDNS settings can be managed with `powerdns::config`. Depending on the
+backend we will set a few configuration settings by default. All other
+variables can be changed as follows:
+
+```puppet
+powerdns::config { 'api':
+  ensure  => present,
+  setting => 'api',
+  value   => 'yes',
+  type    => 'authoritative',
+}
+```
+
+##### `setting`
+
+The setting you want to change.
+
+##### `value`
+
+The value for the above setting.
+
+##### `type`
+
+The configuration file you want to change. Valid values are 'authoritative',
+'recursor'. Defaults to 'authoritative'.
+
+##### `ensure`
+
+Specify whether or not this configuration should be present. Valid values are
+'present', 'absent'. Defaults to 'present'.
+
+### Hiera
+
+This module supports Hiera and uses create_resources to configure PowerDNS
+if you want to. An example can be found below:
+
+```puppet
+powerdns::db_root_password: 's0m4r4nd0mp4ssw0rd'
+powerdns::db_username: 'powerdns'
+powerdns::db_password: 's0m4r4nd0mp4ssw0rd'
+powerdns::recursor: true
+powerdns::recursor::package_ensure: 'latest'
+powerdns::authoritative::package_ensure: 'latest'
+
+powerdns::auth::config:
+  gmysql-dnssec:
+    value: ''
+  local-address:
+    value: '127.0.0.1'
+  api:
+    value: 'yes'
+```
+
+#### Prevent duplicate declaration
+
+In this example we configure `local-address` to `127.0.0.1`. If you also
+run a recursor on the same server and you would like to configure
+`local-address` via Hiera you need to set `setting` and change the name of
+the parameter in Hiera to a unique value.
+
+For example:
+
+```puppet
+powerdns::auth::config:
+  local-address-auth:
+    setting: 'local-address'
+    value: '127.0.0.1'
+powerdns::recursor::config:
+  local-address-recursor:
+    setting: 'local-address'
+    value: '127.0.0.2'
+```
+
+If you have other settings that share the same name between the recursor and
+authoritative server you would have to use the same approach to prevent
+duplicate declaration errors.
 
 ## Limitations
 
-* This module could not manage DNS records, this only can be used as
-configuration of [PowerDNS](https://www.powerdns.com/).
-* If you change backend type, it doesn't remove your old backend file config
-from the `/etc/[pdns|powerdns]/pdns.d/pdns.local.[backend type].conf`, so is
-neccesay that you remove it after change the backend type to use the new backend.
+This module has been tested on:
 
-## Development / contributing
+* CentOS 7, 8
+* Ubuntu 18.04
+* Debian 10
 
-* [Fork it](https://github.com/christiangda/puppet-powerdns#fork-destination-box) / [Clone it](https://github.com/christiangda/puppet-powerdns.git) (`git clone https://github.com/christiangda/puppet-powerdns.git; cd puppet-powerdns`)
-* Create your feature branch (`git checkout -b my-new-feature`)
-* Install [rvm]()
-* Install ruby `rvm install 2.3`
-* Install ruby `rvm usage ruby-2.3.3` in my case
-* Install bundler app first (`gem install bundler`)
-* Install rubygems dependecies in .vendor folder (`bundle install --path .vendor`)
-* Make your changes / improvements / fixes / etc, and of course **your Unit Test** for new code
-* Run the tests (`bundle exec rake test`)
-* Commit your changes (`git add . && git commit -m 'Added some feature'`)
-* Push to the branch (`git push origin my-new-feature`)
-* [Create new Pull Request](https://github.com/christiangda/puppet-powerdns/pull/new/master)
+We believe it also on other operating systems such as:
 
-**Of course, bug reports and suggestions for improvements are always welcome.**
+* Oracle Linux
+* RedHat Enterprise Linux
+* Scientific Linux
+* Arch Linux
 
-You can also support my work on powerdns via
+Schemas in the packages on EL have the exact PowerDNS hardcoded in the paths,
+the main class has three parameters where you can adjust it.
 
-[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://paypal.me/christiangda)
+* `mysql_schema_file`
+* `pgsql_schema_file`
+* `sqlite_schema_file`
 
-[![Support via Gratipay](https://cdn.rawgit.com/gratipay/gratipay-badge/2.1.3/dist/gratipay.png)](https://gratipay.com/~645e3ac3c159/)
+## Development
 
-## Authors
+We strongly believe in the power of open source. This module is our way
+of saying thanks.
 
-* [Christian Gonzalez](https://github.com/christiangda)
+If you want to contribute please:
 
-## License
+1. Fork the repository.
+2. Run tests. It's always good to know that you can start with a clean slate.
+3. Add a test for your change.
+4. Make sure it passes.
+5. Push to your fork and submit a pull request to the `main` branch.
 
-This module is released under the GNU General Public License Version 3:
+We can only accept pull requests with passing tests.
 
-* [http://www.gnu.org/licenses/gpl-3.0-standalone.html](http://www.gnu.org/licenses/gpl-3.0-standalone.html)
+To install all of its dependencies please run:
 
+```bash
+bundle install --path vendor/bundle --without development
+```
+
+### Running unit tests
+
+```bash
+bundle exec rake test
+```
+
+### Running acceptance tests
+
+The unit tests only verify if the code runs, not if it does exactly
+what we want on a real machine. For this we use Beaker. Beaker will
+start a new virtual machine (using Vagrant) and runs a series of
+simple tests.
+
+You can run Beaker tests with:
+
+```bash
+bundle exec rake spec_prep
+BEAKER_destroy=onpass bundle exec rake beaker:centos7
+BEAKER_destroy=onpass bundle exec rake beaker:oel7
+BEAKER_destroy=onpass bundle exec rake beaker:ubuntu1804
+BEAKER_destroy=onpass bundle exec rake beaker:debian10
+```
+
+We recommend specifying `BEAKER_destroy=onpass` as it will keep the
+Vagrant machine running in case something fails.

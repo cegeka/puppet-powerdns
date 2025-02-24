@@ -1,9 +1,12 @@
+---
 fixtures:
-  symlinks:
-    powerdns: "#{source_dir}"
   repositories:
-    stdlib:
-      repo: 'https://github.com/puppetlabs/puppetlabs-stdlib.git'
-      tag:  '4.6.0'
-  symlinks:
-    powerdns: "#{source_dir}"
+    concat: https://github.com/puppetlabs/puppetlabs-concat.git
+    stdlib: https://github.com/puppetlabs/puppetlabs-stdlib.git
+    epel: https://github.com/voxpupuli/puppet-epel.git
+    mysql: https://github.com/puppetlabs/puppetlabs-mysql.git
+    postgresql: https://github.com/puppetlabs/puppetlabs-postgresql.git
+    apt: https://github.com/puppetlabs/puppetlabs-apt.git
+    systemd: https://github.com/voxpupuli/puppet-systemd
+    yumrepo_core: https://github.com/puppetlabs/puppetlabs-yumrepo_core.git
+    augeas_core: https://github.com/puppetlabs/puppetlabs-augeas_core.git
