@@ -2,8 +2,8 @@
 class powerdns::repo inherits powerdns {
   # The repositories of PowerDNS use a version such as '40' for version 4.0
   # and 41 for version 4.1.
-  $authoritative_short_version = regsubst($powerdns::authoritative_version, /^(\d)\.(\d)$/, '\\1\\2', 'G')
-  $recursor_short_version = regsubst($powerdns::recursor_version, /^(\d)\.(\d)$/, '\\1\\2', 'G')
+  $authoritative_short_version = regsubst($powerdns::authoritative_version, /^(\d+)\.(\d+)(?:\.\d+)?$/, '\\1\\2', 'G')
+  $recursor_short_version = regsubst($powerdns::recursor_version, /^(\d+)\.(\d+)(?:\.\d+)?$/, '\\1\\2', 'G')
 
   case $facts['os']['family'] {
     'RedHat': {
@@ -21,24 +21,32 @@ class powerdns::repo inherits powerdns {
         -> Yumrepo['powerdns']
       }
 
-      #if versioncmp($facts['os']['release']['major'], '8') >= 0 {
-      #  if ($facts['os']['name'] == 'Rocky') {
-      #    $mirrorlist = "https://mirrors.rockylinux.org/mirrorlist?arch=\$basearch&repo=PowerTools-\$releasever"
-      #    $gpgkey = 'file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rockyofficial'
-      #  } else {
-      #    $mirrorlist = "http://mirrorlist.centos.org/?release=\$releasever&arch=\$basearch&repo=PowerTools&infra=\$infra"
-      #    $gpgkey = 'file:///etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial'
-      #  }
+      # PowerTools is only for RHEL/CentOS 8
+      # RHEL 9 uses CodeReady Builder (CRB) which should be configured elsewhere
+      if versioncmp($facts['os']['release']['major'], '8') == 0 {
+        if ($facts['os']['name'] == 'Rocky') {
+          $mirrorlist = "https://mirrors.rockylinux.org/mirrorlist?arch=\$basearch&repo=PowerTools-\$releasever"
+          $gpgkey = 'file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rockyofficial'
+        } else {
+          $mirrorlist = "http://mirrorlist.centos.org/?release=\$releasever&arch=\$basearch&repo=PowerTools&infra=\$infra"
+          $gpgkey = 'file:///etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial'
+        }
 
-      #  yumrepo { 'powertools':
-      #    ensure     => 'present',
-      #    descr      => 'PowerTools',
-      #    mirrorlist => $mirrorlist,
-      #    enabled    => 'true',
-      #    gpgkey     => $gpgkey,
-      #    gpgcheck   => 'true',
-      #  }
-      #}
+        yumrepo { 'powertools':
+          ensure     => 'present',
+          descr      => 'PowerTools',
+          mirrorlist => $mirrorlist,
+          enabled    => 'true',
+          gpgkey     => $gpgkey,
+          gpgcheck   => 'true',
+        }
+      } elsif versioncmp($facts['os']['release']['major'], '9') >= 0 {
+        # Explicitly ensure PowerTools repo is absent on RHEL 9+
+        # RHEL 9 uses CodeReady Builder (CRB) instead
+        yumrepo { 'powertools':
+          ensure => 'absent',
+        }
+      }
 
       yumrepo { 'powerdns':
         name        => 'powerdns',

@@ -10,32 +10,40 @@ class powerdns::authoritative (
 
   stdlib::ensure_packages($install_packages)
 
-  # install the right backend
-  case $powerdns::backend {
-    'mysql': {
-      include powerdns::backends::mysql
-    }
-    'bind': {
-      include powerdns::backends::bind
-    }
-    'postgresql': {
-      include powerdns::backends::postgresql
-    }
-    'ldap': {
-      include powerdns::backends::ldap
-    }
-    'sqlite': {
-      include powerdns::backends::sqlite
-    }
-    default: {
-      fail("${powerdns::backend} is not supported. We only support 'mysql', 'bind', 'postgresql', 'ldap' and 'sqlite' at the moment.")
-    }
+  $supported_backends = [
+    'mysql',
+    'bind',
+    'postgresql',
+    'ldap',
+    'sqlite',
+    'lmdb',
+  ]
+
+  unless $powerdns::backend in $supported_backends {
+    fail("${powerdns::backend} is not supported. We only support ${supported_backends.join(', ')} at the moment.")
+  }
+
+  include "powerdns::backends::${powerdns::backend}"
+
+  # Ensure config file exists with proper permissions
+  file { $powerdns::params::authoritative_config:
+    ensure  => file,
+    owner   => 'pdns',
+    group   => $powerdns::authoritative_group,
+    mode    => '0640',
+    require => Package[$powerdns::params::authoritative_package],
+    notify  => Service['pdns'],
   }
 
   service { 'pdns':
-    ensure  => running,
-    name    => $powerdns::params::authoritative_service,
-    enable  => true,
-    require => Package[$powerdns::params::authoritative_package],
+    ensure    => running,
+    name      => $powerdns::params::authoritative_service,
+    enable    => true,
+    require   => [
+      Package[$powerdns::params::authoritative_package],
+      File[$powerdns::params::authoritative_config],
+      Class["powerdns::backends::${powerdns::backend}"],
+    ],
+    subscribe => File[$powerdns::params::authoritative_config],
   }
 }

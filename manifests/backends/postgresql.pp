@@ -81,34 +81,16 @@ class powerdns::backends::postgresql ($package_ensure = $powerdns::params::defau
   }
 
   if $powerdns::backend_create_tables {
-    $password_hash = $db_password ? {
+    $password_hash = $powerdns::db_password ? {
       Undef   => undef,
       default => postgresql::postgresql_password($powerdns::db_username, $_db_password),
     }
+
     postgresql::server::db { $powerdns::db_name:
       user     => $powerdns::db_username,
+      owner    => $powerdns::db_username,
       password => $password_hash,
       require  => Package[$powerdns::params::pgsql_backend_package_name],
-    }
-
-      # Add some extra database priviledges that required by modern PostgreSQL.
-  #
-    postgresql::server::default_privileges { 'all-tables':
-      role        => $powerdns::db_username,
-      db          => $powerdns::db_name,
-      privilege   => 'ALL',
-      object_type => 'TABLES',
-      schema      => 'public',
-      require     => Class['postgresql::server'],
-    }
-
-    postgresql::server::default_privileges { 'all-sequences':
-      role        => $powerdns::db_username,
-      db          => $powerdns::db_name,
-      privilege   => 'ALL',
-      object_type => 'SEQUENCES',
-      schema      => 'public',
-      require     => Class['postgresql::server'],
     }
 
     # define connection settings for powerdns user in order to create tables
