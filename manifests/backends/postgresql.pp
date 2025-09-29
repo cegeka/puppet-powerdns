@@ -59,6 +59,13 @@ class powerdns::backends::postgresql ($package_ensure = $powerdns::params::defau
     type    => 'authoritative',
   }
 
+  powerdns::config { 'gpgsql-dnssec':
+    ensure  => present,
+    setting => 'gpgsql-dnssec',
+    value   => 'yes',
+    type    => 'authoritative',
+  }
+
   # set up the powerdns backend
   if $powerdns::params::pgsql_backend_package_name {
     package { $powerdns::params::pgsql_backend_package_name:
