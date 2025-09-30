@@ -114,5 +114,14 @@ class powerdns::backends::postgresql ($package_ensure = $powerdns::params::defau
       unless           => "SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'domains'",
       require          => Postgresql::Server::Db[$powerdns::db_name],
     }
+
+    # Add pg_hba rules for PowerDNS
+    postgresql::server::pg_hba_rule { 'powerdns local':
+        type        => 'local',
+        database    => $powerdns::db_name,
+        user        => $powerdns::db_username,
+        auth_method => 'md5',
+        order       => 1,
+    }
   }
 }
