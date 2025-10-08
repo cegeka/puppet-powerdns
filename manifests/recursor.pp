@@ -8,26 +8,35 @@
 #
 class powerdns::recursor (
   String $package_ensure = $powerdns::params::default_package_ensure,
-  Hash   $forward_zones  = $powerdns::forward_zones,
+  Hash   $forward_zones  = lookup('profile::iac::powerdns::recursor::forward_zones', { 'default_value' => {}, 'merge' => 'deep' }),
   String $recursor_dir   = $powerdns::recursor_dir,
 ) inherits powerdns {
   package { $powerdns::recursor_package:
     ensure => $package_ensure,
   }
 
+  $powerdns_recursor_config = lookup('profile::iac::powerdns::recursor::config', { 'default_value' => {}, 'merge' => 'deep' })
+
+  file { "${recursor_dir}/recursor.conf":
+      ensure  => file,
+      owner   => 'root',
+      group   => 'root',
+      mode    => '0644',
+      content => template('powerdns/recursor.conf.erb'),
+      notify  => Service['pdns-recursor'],
+    }
+
+  
+
   if !empty($forward_zones) {
-    $zone_config = "${recursor_dir}/forward_zones.conf"
+    $zone_config = "${recursor_dir}/forward-zones"
     file { $zone_config:
       ensure  => file,
       owner   => 'root',
       group   => 'root',
+      mode    => '0644',
       content => template('powerdns/forward_zones.conf.erb'),
       notify  => Service['pdns-recursor'],
-    }
-
-    powerdns::config { 'forward-zones-file':
-      value => $zone_config,
-      type  => 'recursor',
     }
   }
 

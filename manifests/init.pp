@@ -99,10 +99,6 @@ class powerdns (
   if $recursor {
     contain powerdns::recursor
 
-    # Set up Hiera for the recursor.
-    $powerdns_recursor_config = lookup('powerdns::recursor::config', Hash, 'deep', {})
-    $powerdns_recursor_defaults = { 'type' => 'recursor' }
-    create_resources(powerdns::config, $powerdns_recursor_config, $powerdns_recursor_defaults)
   }
 
   if $purge_autoprimaries {

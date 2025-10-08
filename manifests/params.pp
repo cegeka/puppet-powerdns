@@ -1,6 +1,6 @@
 # powerdns::params
 class powerdns::params {
-  $default_package_ensure = installed
+  $default_package_ensure = latest
   $authoritative_version = '4.8'
   $recursor_version = '4.9'
 
