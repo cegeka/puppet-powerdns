@@ -26,7 +26,7 @@ class powerdns::recursor (
       notify  => Service['pdns-recursor'],
     }
 
-  
+
 
   if !empty($forward_zones) {
     $zone_config = "${recursor_dir}/forward-zones"
