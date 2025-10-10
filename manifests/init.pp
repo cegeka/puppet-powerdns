@@ -101,6 +101,8 @@ class powerdns (
 
   }
 
+  # Recursor configuration is handled in recursor.pp
+
   if $purge_autoprimaries {
     resources { 'powerdns_autoprimary':
       purge => true,
