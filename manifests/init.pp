@@ -52,8 +52,7 @@ class powerdns (
       'mapasync'
     ]
   ]                          $lmdb_sync_mode                     = undef,
-  Boolean                    $custom_repo                        = false,
-  Boolean                    $custom_epel                        = false,
+  Boolean                    $custom_epel                        = true,
   Pattern[/4\.[0-9]+/]       $authoritative_version              = $powerdns::params::authoritative_version,
   Pattern[/[4,5]\.[0-9]+/]   $recursor_version                   = $powerdns::params::recursor_version,
   String[1]                  $mysql_schema_file                  = $powerdns::params::mysql_schema_file,
@@ -79,11 +78,6 @@ class powerdns (
         fail("On MySQL 'db_root_password' must be a non-empty string when 'backend_create_tables' == true")
       }
     }
-  }
-
-  # Include the required classes
-  unless $custom_repo {
-    contain powerdns::repo
   }
 
   if $authoritative {
