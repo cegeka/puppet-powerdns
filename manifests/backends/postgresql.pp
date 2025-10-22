@@ -59,6 +59,13 @@ class powerdns::backends::postgresql ($package_ensure = $powerdns::params::defau
     type    => 'authoritative',
   }
 
+  powerdns::config { 'gpgsql-dnssec':
+    ensure  => present,
+    setting => 'gpgsql-dnssec',
+    value   => 'yes',
+    type    => 'authoritative',
+  }
+
   # set up the powerdns backend
   if $powerdns::params::pgsql_backend_package_name {
     package { $powerdns::params::pgsql_backend_package_name:
@@ -106,6 +113,15 @@ class powerdns::backends::postgresql ($package_ensure = $powerdns::params::defau
       command          => "\\i ${powerdns::pgsql_schema_file}",
       unless           => "SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'domains'",
       require          => Postgresql::Server::Db[$powerdns::db_name],
+    }
+
+    # Add pg_hba rules for PowerDNS
+    postgresql::server::pg_hba_rule { 'powerdns local':
+        type        => 'local',
+        database    => $powerdns::db_name,
+        user        => $powerdns::db_username,
+        auth_method => 'md5',
+        order       => 1,
     }
   }
 }
