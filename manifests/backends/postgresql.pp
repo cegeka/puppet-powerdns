@@ -1,5 +1,8 @@
 # postgresql backend for powerdns
-class powerdns::backends::postgresql ($package_ensure = $powerdns::params::default_package_ensure) inherits powerdns {
+class powerdns::backends::postgresql (
+  $package_ensure         = $powerdns::params::default_package_ensure,
+  Hash $config_entries    = {},
+) inherits powerdns {
   if $facts['os']['family'] == 'Debian' {
     # Remove the debconf gpgsql configuration file auto-generated when using the package
     # from Debian repository as it interferes with this module's backend configuration.
@@ -123,5 +126,10 @@ class powerdns::backends::postgresql ($package_ensure = $powerdns::params::defau
         auth_method => 'md5',
         order       => 1,
     }
+  }
+
+  # Manage postgresql.conf
+  if !empty($config_entries) {
+    create_resources('postgresql::server::config_entry', $config_entries)
   }
 }
